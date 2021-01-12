@@ -14,6 +14,8 @@ yellow="\033[1;33m"
 blue="\033[1;34m"
 rescolor="\e[0m"
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 echo -e "\n ------------------------------------\n | "$green"Simple Accesspoint - by jstrausd "$rescolor"|\n ------------------------------------\n"
 
 if ! [ $(id -u) = "0" ] 2>/dev/null; then
@@ -22,6 +24,22 @@ if ! [ $(id -u) = "0" ] 2>/dev/null; then
 fi
 
 echo -e "\nChecking dependencies:\n"
+
+echo -ne "screen....."
+if ! hash screen 2>/dev/null; then
+	echo -e "\e[1;31m Not installed"$rescolor""
+		
+   	read -p "-> Do you want to install it now? (y/N) "
+    if [[ $REPLY =~ ^[Yy]$ ]] 
+	then
+    	echo "Installing screen...."
+		sudo apt install screen -y
+	fi
+else
+	echo -e "\e[1;32m Installed!"$rescolor""
+fi
+sleep 0.025
+
 
 echo -ne "hostapd....."
 if ! hash hostapd 2>/dev/null; then
@@ -55,16 +73,61 @@ sleep 0.025
 
 function startAccesspoint() {
 
-	echo -e "\nStarting Accesspoint and DHCP-Server..."
+	echo -e "\n"$blue"Checking Configuration files..."$rescolor
+	sleep 1
 
-	hostapd ./config/$1
-	dnsmasq -C ./config/$2 -d
+	hostapd_conf=$DIR/config/$1
+	if [ -f "$hostapd_conf" ]; then
+		echo -e $green"$hostapd_conf exists!"$rescolor
+	else
+		echo -e $red"$hostapd_conf does not exist!"$rescolor
+		exit 1
+	fi
+
+	dnsmasq_conf=$DIR/config/$1
+	if [ -f "$dnsmasq_conf" ]; then
+		echo -e $green"$dnsmasq_conf exists!"$rescolor
+	else
+		echo -e $red"$dnsmasq_conf does not exist!"$rescolor
+		exit 1
+	fi
+
+
+	echo -e "\n"$blue"Creating Accesspoint and DHCP-Server Script..."$rescolor
+	sleep 1
+
+	echo -e "#!/bin/bash\necho 'AP-startup.service: ## Starting ##'\nkillall dnsmasq\nifconfig wlan0 up 192.168.1.1 netmask 255.255.255.0\nscreen -dmS hostapd hostapd $DIR/config/$1\nscreen -dmS dnsmasq dnsmasq -C $DIR/config/$2 -d" > startup.sh
+	
+	echo -e $green"Finished"$rescolor
+
+	echo -e "\n"$blue"Copy script..."$rescolor
+	sleep 1
+	echo -e $green"Finished"$rescolor
+	cp startup.sh /usr/local/bin
+
+	chown pi:pi /usr/local/bin/startup.sh
+	chmod u+x /usr/local/bin/startup.sh
+
+	echo -e "\n"$blue"Copy service file..."$rescolor
+	sleep 1
+	echo -e $green"Finished"$rescolor
+	cp $DIR/config/ap-startup.service /etc/systemd/system
+	chmod 640 /etc/systemd/system/ap-startup.service
+
+	echo -e "\n"$blue"Enabling Startup-Service..."$rescolor
+	sleep 1
+	echo -e $green"Finished"$rescolor
+	systemctl enable ap-startup
+
+	echo -e "\n"$blue"Verifying Service..."$rescolor
+	echo "$(systemctl status ap-startup.service)"
 
 }
 
 echo -e "\n"$green"-----------------------------------------------------------------------"$rescolor"\n"
-echo -e "  "$blue"[1]"$rescolor" -> Start Accesspoint and DHCP-Server"
-echo -e "  "$blue"[2]"$rescolor" -> Exit"
+echo -e "  "$blue"[1]"$rescolor" -> Create Accesspoint and DHCP-Server"
+echo -e "  "$blue"[2]"$rescolor" -> Disable Accesspoint and DHCP-Server Startup"
+echo -e "  "$blue"[0]"$rescolor" -> Exit"
 echo -e "\n"$green"-----------------------------------------------------------------------"$rescolor""
 
 read
@@ -73,12 +136,18 @@ then
     
 	echo -e $green"\n -> Filename of hostapd configuration file? (in config directory)"$rescolor
 	read -p "    " hostapd_conf
-	echo -e $green"\n -> Filename of hostapd configuration file? (in config directory)"$rescolor
+	echo -e $green"\n -> Filename of dnsmasq configuration file? (in config directory)"$rescolor
 	read  -p "    " dnsmasq_conf
 	
 	startAccesspoint $hostapd_conf $dnsmasq_conf
 
 elif [[ $REPLY =~ [2]$ ]]
+then
+	echo -e "\n"$blue"Disabling Startup-Service..."$rescolor
+	sleep 1
+	systemctl disable ap-startup
+
+elif [[ $REPLY =~ [0]$ ]]
 then
 	exit 1;
 fi
