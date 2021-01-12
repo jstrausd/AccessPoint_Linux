@@ -1,0 +1,84 @@
+#!/bin/bash
+
+#   AccessPoint Linux   #
+#   Credit by jstrausd  #
+#########################
+
+#COLORS
+white="\033[1;37m"
+grey="\033[0;37m"
+magenta="\033[0;35m"
+red="\033[1;31m"
+green="\033[1;32m"
+yellow="\033[1;33m"
+blue="\033[1;34m"
+rescolor="\e[0m"
+
+echo -e "\n ------------------------------------\n | "$green"Simple Accesspoint - by jstrausd "$rescolor"|\n ------------------------------------\n"
+
+if ! [ $(id -u) = "0" ] 2>/dev/null; then
+	echo -e "\e[1;31m You have to run this script as super user"$rescolor"\n"
+	exit 1;
+fi
+
+echo -e "\nChecking dependencies:\n"
+
+echo -ne "hostapd....."
+if ! hash hostapd 2>/dev/null; then
+	echo -e "\e[1;31m Not installed"$rescolor""
+		
+   	read -p "-> Do you want to install it now? (y/N) "
+    if [[ $REPLY =~ ^[Yy]$ ]] 
+	then
+    	echo "Installing hostapd...."
+		sudo apt install hostapd -y
+	fi
+else
+	echo -e "\e[1;32m Installed!"$rescolor""
+fi
+sleep 0.025
+
+echo -ne "dnsmasq....."
+if ! hash dnsmasq 2>/dev/null; then
+	echo -e "\e[1;31m Not installed"$rescolor""
+		
+   	read -p "-> Do you want to install it now? (y/N) "
+    if [[ $REPLY =~ ^[Yy]$ ]] 
+	then
+    	echo "Installing dnsmasq...."
+		sudo apt install dnsmasq -y
+	fi
+else
+	echo -e "\e[1;32m Installed!"$rescolor""
+fi
+sleep 0.025
+
+function startAccesspoint() {
+
+	echo -e "\nStarting Accesspoint and DHCP-Server..."
+
+	hostapd ./config/$1
+	dnsmasq -C ./config/$2 -d
+
+}
+
+echo -e "\n"$green"-----------------------------------------------------------------------"$rescolor"\n"
+echo -e "  "$blue"[1]"$rescolor" -> Start Accesspoint and DHCP-Server"
+echo -e "  "$blue"[2]"$rescolor" -> Exit"
+echo -e "\n"$green"-----------------------------------------------------------------------"$rescolor""
+
+read
+if [[ $REPLY =~ [1]$ ]] 
+then
+    
+	echo -e $green"\n -> Filename of hostapd configuration file? (in config directory)"$rescolor
+	read -p "    " hostapd_conf
+	echo -e $green"\n -> Filename of hostapd configuration file? (in config directory)"$rescolor
+	read  -p "    " dnsmasq_conf
+	
+	startAccesspoint $hostapd_conf $dnsmasq_conf
+
+elif [[ $REPLY =~ [2]$ ]]
+then
+	exit 1;
+fi
