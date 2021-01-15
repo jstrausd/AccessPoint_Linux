@@ -1,8 +1,10 @@
 #!/bin/bash
 
-#   AccessPoint Linux   #
-#   Credit by jstrausd  #
-#########################
+################################
+#       AccessPoint Linux      #
+#  Create a simple Accesspoint #
+#       Credit by jstrausd     #
+################################
 
 #COLORS
 white="\033[1;37m"
@@ -95,29 +97,26 @@ function startAccesspoint() {
 
 	echo -e "\n"$blue"Creating Accesspoint and DHCP-Server Script..."$rescolor
 	sleep 1
-
-	echo -e "#!/bin/bash\necho 'AP-startup.service: ## Starting ##'\nkillall dnsmasq\nifconfig wlan0 up 192.168.1.1 netmask 255.255.255.0\nscreen -dmS hostapd hostapd $DIR/config/$1\nscreen -dmS dnsmasq dnsmasq -C $DIR/config/$2 -d" > startup.sh
-	
+	echo -e "#!/bin/bash\necho 'AP-startup.service: ## Starting ##'\nkillall dnsmasq\nifconfig wlan0 up 192.168.1.1 netmask 255.255.255.0\nscreen -dmS hostapd hostapd $DIR/config/$1\nscreen -dmS dnsmasq dnsmasq -C $DIR/config/$2 -d" > startup.sh	
 	echo -e $green"Finished"$rescolor
 
 	echo -e "\n"$blue"Copy script..."$rescolor
 	sleep 1
-	echo -e $green"Finished"$rescolor
 	cp startup.sh /usr/local/bin
-
 	chown pi:pi /usr/local/bin/startup.sh
 	chmod u+x /usr/local/bin/startup.sh
+	echo -e $green"Finished"$rescolor
 
 	echo -e "\n"$blue"Copy service file..."$rescolor
 	sleep 1
-	echo -e $green"Finished"$rescolor
 	cp $DIR/config/ap-startup.service /etc/systemd/system
 	chmod 640 /etc/systemd/system/ap-startup.service
+	echo -e $green"Finished"$rescolor
 
 	echo -e "\n"$blue"Enabling Startup-Service..."$rescolor
 	sleep 1
-	echo -e $green"Finished"$rescolor
 	systemctl enable ap-startup
+	echo -e $green"Finished"$rescolor
 
 	echo -e "\n"$blue"Verifying Service..."$rescolor
 	echo "$(systemctl status ap-startup.service)"
